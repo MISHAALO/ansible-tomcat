@@ -1,4 +1,4 @@
-cp -r roles/* /etc/ansible/roles 
+cp -r tomcat /etc/ansible/roles 
 
 defaults - tomcat_version: "tomcat_verion"
 files add file apache-tomcat-*.tar.gz -> /files/
