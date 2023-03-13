@@ -1,0 +1,10 @@
+---
+
+- name: Generic playbook
+  hosts: '{{ HOST }}'
+  gather_facts: false
+  become: yes
+  become_method: sudo
+
+  roles: 
+    - '{{ ROLE }}'

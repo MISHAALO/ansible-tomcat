@@ -1,0 +1,120 @@
+---
+- name: Add group tomcat
+  group:
+    name: tomcat
+    gid: "{{ tomcat_uid }}"
+    system: yes
+
+- name: Add user tomcat
+  user:
+    name: tomcat
+    uid: "{{ tomcat_gid }}"
+    group: tomcat
+    system: yes
+    createhome: no
+
+- setup:
+    filter: "ansible_distribution"
+
+- when: ansible_distribution == "CentOS"
+  name: Install OpenJDK 1.8
+  yum:
+    name: java-1.8.0-openjdk
+    state: present
+
+- when: ansible_distribution == "Debian"
+  name: Install OpenJDK 1.8
+  apt:
+    name: openjdk-8-jdk
+    state: present
+
+- name: Check java installation
+  shell: java -version
+  register: java_ver
+  failed_when: java_ver.rc != 0 or java_ver.stderr == ""
+  changed_when: false
+
+- name: Create 'distr' directory
+  file:
+    path: /d01/distr
+    state: directory
+
+- name: Upload tomcat to remote
+  copy:
+    src: "apache-tomcat-{{ tomcat_version }}.tar.gz"
+    dest: /d01/distr
+
+- name: Unarchive tomcat
+  unarchive:
+    src: "/d01/distr/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    dest: /d01
+    creates: "/d01/apache-tomcat-{{ tomcat_version }}"
+    owner: tomcat
+    group: tomcat
+    copy: no
+
+- name: "Change owner & group for '/d01/apache-tomcat-{{ tomcat_version }}'"
+  file:
+    path: "/d01/apache-tomcat-{{ tomcat_version }}"
+    owner: tomcat
+    group: tomcat
+
+- name: Create symbolic link 'tomcat'
+  file:
+    src: "/d01/apache-tomcat-{{ tomcat_version }}"
+    path: /d01/tomcat
+    owner: tomcat
+    group: tomcat
+    state: link
+
+- name: jmx password access 
+  shell: |
+    echo "admin readwrite" >  /d01/tomcat/conf/jmx.access && echo "admin admin" >  /d01/tomcat/conf/jmx.password &&  chmod 600 /d01/tomcat/conf/jmx.access && chmod 600 /d01/tomcat/conf/jmx.access
+
+- name: copy tomcat servisce
+  copy:
+    src: setev/setenv.sh
+    dest: /d01/tomcat/bin/
+
+- name: update /d01/tomcat directory owner
+  shell: chown -R tomcat:tomcat /d01/tomcat/*
+  become: true 
+
+- name: Check init system type
+  setup:
+    filter: ansible_service_mgr
+
+- name: Upload tomcat systemd unit file
+  copy:
+    src: systemd/tomcat.service
+    dest: /etc/systemd/system/
+  when: ansible_service_mgr == 'systemd'
+
+- name: Upload tomcat SysV init script
+  copy:
+    src: init.d/tomcat
+    dest: /etc/init.d/
+    mode: 0744
+  when: ansible_service_mgr == 'service'
+
+- name: Enable tomcat
+  service:
+    name: tomcat
+    enabled: yes
+
+- name: Restart tomcat
+  service:
+    name: tomcat
+    state: restarted
+
+#- name: Wait till the manager is starting up
+#  uri:
+#    url: "http://localhost:{{ tomcat_port }}/manager"
+#    status_code: 401
+#    timeout: 3
+#  register: result
+#  until: result.status == 401
+#  retries: 20
+#  delay: 5
+
+
