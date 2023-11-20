@@ -41,12 +41,12 @@
 
 - name: Upload tomcat to remote
   copy:
-    src: "apache-tomcat-{{ tomcat_version }}.tar.gz"
+    src: "apache-tomcat-{{ tomcat_version }}.tar"
     dest: /d01/distr
 
 - name: Unarchive tomcat
   unarchive:
-    src: "/d01/distr/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    src: "/d01/distr/apache-tomcat-{{ tomcat_version }}.tar"
     dest: /d01
     creates: "/d01/apache-tomcat-{{ tomcat_version }}"
     owner: tomcat
@@ -80,6 +80,16 @@
   shell: chown -R tomcat:tomcat /d01/tomcat/*
   become: true 
 
+- name: Copy ttf-mscorefonts-installer to tmp
+  copy:
+    src: "ttf-mscorefonts-installer_3.7_all.deb"
+    dest: /tmp
+
+- name: Install ttf-mscorefonts-installer
+  apt:
+    deb: /tmp/ttf-mscorefonts-installer_3.7_all.deb
+    state: present
+
 - name: Check init system type
   setup:
     filter: ansible_service_mgr
@@ -106,15 +116,3 @@
   service:
     name: tomcat
     state: restarted
-
-#- name: Wait till the manager is starting up
-#  uri:
-#    url: "http://localhost:{{ tomcat_port }}/manager"
-#    status_code: 401
-#    timeout: 3
-#  register: result
-#  until: result.status == 401
-#  retries: 20
-#  delay: 5
-
-

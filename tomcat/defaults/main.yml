@@ -1,5 +1,5 @@
 ---
 tomcat_version: "9.0.56"
-tomcat_uid: 1000
-tomcat_gid: 100
-tomcat_port: 8080
+tomcat_uid: 567
+tomcat_gid: 567
+tomcat_port: 567
